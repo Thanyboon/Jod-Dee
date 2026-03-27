@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>จดดี (Jod-Dee)</title>
+
+    <meta name="apple-mobile-web-app-capable" จดดี (Jod-Dee)="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" จดดี (Jod-Dee)="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2910/2910321.png">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root { --primary: #1e293b; --accent: #3b82f6; --bg: #f8fafc; --danger: #ef4444; --edit: #f59e0b; }
+        body { background-color: var(--bg); font-family: 'Inter', sans-serif; padding-bottom: 30px; }
+        .main-card { max-width: 900px; margin: 15px auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .budget-box { background: #fff; border: 1px solid #e2e8f0; border-top: 4px solid var(--accent); padding: 12px; border-radius: 12px; height: 100%; }
+        .progress { height: 6px; margin-top: 8px; }
+        #bill-canvas { padding: 25px; background: white; border: 1px solid #eee; border-radius: 15px; width: 100%; max-width: 420px; margin: 0 auto; }
+        .bill-header { border-bottom: 2px solid #f8fafc; margin-bottom: 15px; text-align: center; }
+        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 14px; }
+        .total-area { margin-top: 15px; background: var(--primary); color: white; padding: 15px; border-radius: 10px; }
+        .btn-delete { color: var(--danger); border: none; background: none; font-size: 11px; font-weight: bold; margin-left: 10px; }
+        .btn-edit-item { color: var(--edit); border: none; background: none; font-size: 11px; font-weight: bold; }
+        .input-form { background: #f1f5f9; padding: 15px; border-radius: 15px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="main-card">
+        <h4 class="text-center fw-bold mb-3">💰 จดดี (Jod-Dee)</h4>
+
+        <div class="row g-2 mb-3">
+            <div class="col-4">
+                <div class="budget-box">
+                    <label class="small fw-bold">รายวัน</label>
+                    <input type="number" id="b-day" class="form-control form-control-sm mb-1" onchange="updateCfg()" placeholder="งบ">
+                    <div class="small" style="font-size: 10px;">ใช้: <span id="u-day">0</span> | <span id="r-day" class="text-primary fw-bold">0</span></div>
+                    <div class="progress"><div id="p-day" class="progress-bar"></div></div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="budget-box" style="border-top-color: #8b5cf6;">
+                    <label class="small fw-bold">รายเดือน</label>
+                    <input type="number" id="b-month" class="form-control form-control-sm mb-1" onchange="updateCfg()" placeholder="งบ">
+                    <div class="small" style="font-size: 10px;">ใช้: <span id="u-month">0</span> | <span id="r-month" style="color:#8b5cf6" class="fw-bold">0</span></div>
+                    <div class="progress"><div id="p-month" class="progress-bar"></div></div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="budget-box" style="border-top-color: #10b981;">
+                    <label class="small fw-bold">รายปี</label>
+                    <input type="number" id="b-year" class="form-control form-control-sm mb-1" onchange="updateCfg()" placeholder="งบ">
+                    <div class="small" style="font-size: 10px;">ใช้: <span id="u-year">0</span> | <span id="r-year" class="text-success fw-bold">0</span></div>
+                    <div class="progress"><div id="p-year" class="progress-bar"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-form">
+            <div class="row g-2">
+                <div class="col-12 mb-1">
+                    <label class="small fw-bold text-muted">เลือกวันที่ (ลืมจดให้เลือกวันย้อนหลังที่นี่):</label>
+                    <input type="date" id="inp-date" class="form-control form-control-sm">
+                </div>
+                <div class="col-6"><input type="text" id="desc" class="form-control" placeholder="รายการ"></div>
+                <div class="col-6">
+                    <div class="input-group">
+                        <select id="cat" class="form-select"></select>
+                        <button class="btn btn-outline-secondary" onclick="addCat()">+</button>
+                    </div>
+                </div>
+                <div class="col-5"><input type="number" id="amt" class="form-control" placeholder="0.00"></div>
+                <div class="col-4">
+                    <select id="type" class="form-select">
+                        <option value="expense">จ่าย (-)</option>
+                        <option value="income">รับ (+)</option>
+                    </select>
+                </div>
+                <div class="col-3">
+                    <button id="btn-save" onclick="addItem()" class="btn btn-primary w-100">บันทึก</button>
+                </div>
+                <input type="hidden" id="edit-id">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div id="bill-canvas">
+                    <div class="bill-header">
+                        <h5 class="fw-bold m-0">E-RECEIPT</h5>
+                        <small id="date-label" class="text-muted"></small>
+                    </div>
+                    <div id="items-list"></div>
+                    <div class="total-area d-flex justify-content-between align-items-center">
+                        <span class="small">ยอดคงเหลือรวม</span>
+                        <span id="total-txt" class="h5 m-0 fw-bold">0.00</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 d-flex flex-column gap-2 py-3">
+                <button onclick="saveImg()" class="btn btn-dark">📸 บันทึกเป็นรูปภาพ</button>
+                <button onclick="saveEx()" class="btn btn-success">📊 ส่งออก Excel</button>
+                <div class="d-flex gap-2">
+                    <button onclick="doBackup()" class="btn btn-outline-primary flex-fill">📤 Backup</button>
+                    <button onclick="document.getElementById('fileIn').click()" class="btn btn-outline-secondary flex-fill">📥 Restore</button>
+                    <input type="file" id="fileIn" style="display:none" onchange="doRestore(event)">
+                </div>
+                <button onclick="resetAll()" class="btn btn-link text-danger btn-sm mt-2">🗑️ ล้างข้อมูลทั้งหมด</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('ledger_data')) || [];
+    let cats = JSON.parse(localStorage.getItem('ledger_cats')) || ["🍕 อาหาร", "🚗 เดินทาง", "🛒 ช้อปปิ้ง"];
+    let cfg = JSON.parse(localStorage.getItem('ledger_cfg')) || { d:0, m:0, y:0 };
+
+    window.onload = () => { resetDate(); renderCats(); loadConfig(); updateUI(); };
+
+    function resetDate() {
+        const d = new Date();
+        document.getElementById('inp-date').value = d.toISOString().split('T')[0];
+    }
+
+    function renderCats() { document.getElementById('cat').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join(''); }
+    
+    function addCat() {
+        const n = prompt("หมวดหมู่ใหม่:");
+        if(n && !cats.includes(n)) { cats.push(n); localStorage.setItem('ledger_cats', JSON.stringify(cats)); renderCats(); }
+    }
+
+    function loadConfig() {
+        document.getElementById('b-day').value = cfg.d || '';
+        document.getElementById('b-month').value = cfg.m || '';
+        document.getElementById('b-year').value = cfg.y || '';
+        document.getElementById('date-label').innerText = new Date().toLocaleDateString('th-TH');
+    }
+
+    function updateCfg() {
+        cfg = { d: +document.getElementById('b-day').value, m: +document.getElementById('b-month').value, y: +document.getElementById('b-year').value };
+        localStorage.setItem('ledger_cfg', JSON.stringify(cfg));
+        updateUI();
+    }
+
+    function addItem() {
+        const d = document.getElementById('desc').value, a = +document.getElementById('amt').value;
+        const dateVal = document.getElementById('inp-date').value;
+        const editId = document.getElementById('edit-id').value;
+
+        if(!d || !a || !dateVal) return alert("กรอกข้อมูลให้ครบ");
+
+        const itemDate = new Date(dateVal).toISOString();
+
+        if(editId) {
+            const idx = db.findIndex(i => i.id == editId);
+            db[idx] = { ...db[idx], desc: d, amt: a, cat: document.getElementById('cat').value, type: document.getElementById('type').value, date: itemDate };
+            document.getElementById('edit-id').value = '';
+            document.getElementById('btn-save').innerText = "บันทึก";
+        } else {
+            db.push({ id: Date.now(), desc: d, amt: a, cat: document.getElementById('cat').value, type: document.getElementById('type').value, date: itemDate });
+        }
+        save();
+        document.getElementById('desc').value = ''; document.getElementById('amt').value = '';
+        resetDate();
+    }
+
+    function save() { localStorage.setItem('ledger_data', JSON.stringify(db)); updateUI(); }
+
+    function updateUI() {
+        const list = document.getElementById('items-list');
+        list.innerHTML = '';
+        let total = 0, sD = 0, sM = 0, sY = 0;
+        const now = new Date();
+
+        // เรียงวันที่จากใหม่ไปเก่า
+        db.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        db.forEach(i => {
+            const iD = new Date(i.date);
+            if(i.type === 'expense') {
+                if(iD.toDateString() === now.toDateString()) sD += i.amt;
+                if(iD.getMonth() === now.getMonth() && iD.getFullYear() === now.getFullYear()) sM += i.amt;
+                if(iD.getFullYear() === now.getFullYear()) sY += i.amt;
+            }
+            list.innerHTML += `<div class="item-row">
+                <div><small class="text-muted" style="font-size:9px">${iD.toLocaleDateString('th-TH')}</small><br><b>${i.desc}</b><br><span class="item-cat">${i.cat}</span></div>
+                <div class="text-end">
+                    <span class="${i.type==='income'?'text-success':'text-danger'} fw-bold">${i.type==='income'?'+':'-'}${i.amt.toLocaleString()}</span><br>
+                    <button onclick="editItem(${i.id})" class="btn-edit-item">แก้</button>
+                    <button onclick="delItem(${i.id})" class="btn-delete">ลบ</button>
+                </div>
+            </div>`;
+            total += (i.type === 'income' ? i.amt : -i.amt);
+        });
+
+        document.getElementById('total-txt').innerText = total.toLocaleString() + ".-";
+        setProg('day', sD, cfg.d); setProg('month', sM, cfg.m); setProg('year', sY, cfg.y);
+    }
+
+    function editItem(id) {
+        const item = db.find(i => i.id === id);
+        if(item) {
+            document.getElementById('desc').value = item.desc;
+            document.getElementById('amt').value = item.amt;
+            document.getElementById('cat').value = item.cat;
+            document.getElementById('type').value = item.type;
+            document.getElementById('inp-date').value = new Date(item.date).toISOString().split('T')[0];
+            document.getElementById('edit-id').value = item.id;
+            document.getElementById('btn-save').innerText = "ตกลงแก้ไข";
+            window.scrollTo(0,0);
+        }
+    }
+
+    function setProg(p, s, l) {
+        document.getElementById(`u-${p}`).innerText = s.toLocaleString();
+        const r = l - s;
+        document.getElementById(`r-${p}`).innerText = l > 0 ? r.toLocaleString() : '-';
+        const pct = l > 0 ? Math.min((s/l)*100, 100) : 0;
+        const b = document.getElementById(`p-${p}`);
+        b.style.width = pct+'%';
+        b.className = 'progress-bar ' + (pct > 90 ? 'bg-danger' : (pct > 70 ? 'bg-warning' : 'bg-info'));
+    }
+
+    function delItem(id) { if(confirm("ลบรายการนี้?")) { db = db.filter(i => i.id !== id); save(); } }
+    function resetAll() { if(confirm("ล้างทั้งหมด?")) { db = []; save(); } }
+
+    function doBackup() {
+        const blob = new Blob([JSON.stringify({ db, cats, cfg })], {type: "application/json"});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ledger-backup.json`; a.click();
+    }
+
+    function doRestore(e) {
+        const r = new FileReader();
+        r.onload = (ev) => {
+            const data = JSON.parse(ev.target.result);
+            db = data.db; cats = data.cats; cfg = data.cfg; save(); location.reload();
+        };
+        r.readAsText(e.target.files[0]);
+    }
+
+    function saveImg() {
+        const btns = document.querySelectorAll('.btn-delete, .btn-edit-item');
+        btns.forEach(b => b.style.visibility='hidden');
+        html2canvas(document.getElementById('bill-canvas'), {scale:3}).then(c => {
+            const a = document.createElement('a'); a.download = 'Receipt.png'; a.href = c.toDataURL(); a.click();
+            btns.forEach(b => b.style.visibility='visible');
+        });
+    }
+
+    function saveEx() {
+        const ws = XLSX.utils.json_to_sheet(db.map(i => ({ วันที่: i.date, รายการ: i.desc, หมวดหมู่: i.cat, ประเภท: i.type, จำนวน: i.amt })));
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Ledger");
+        XLSX.writeFile(wb, "MyFinance.xlsx");
+    }
+</script>
+</body>
+</html>
